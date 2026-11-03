@@ -46,7 +46,7 @@
 </style>
 </head>
 <body>
-<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v8</span></header>
+<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v10</span></header>
 
 <main>
   <div class="card" data-f="zone">
@@ -274,15 +274,18 @@
     }
     return zxPromise;
   }
-  if (!('BarcodeDetector' in window)) getZxDecoder();  // 아이폰은 페이지 열 때 미리 준비
+  getZxDecoder();  // 페이지 열 때 미리 준비
 
+  // 아이폰·안드로이드 모두 zxing-cpp 엔진 우선, 불러오지 못하면 휴대폰 자체 인식 기능 사용
   async function getDecoder() {
+    const zx = await getZxDecoder();
+    if (zx) return zx;
     const det = await getNativeDetector();
     if (det) return async canvas => {
       const codes = await det.detect(canvas);
       return codes && codes.length ? codes[0].rawValue : null;
     };
-    return await getZxDecoder();
+    return null;
   }
 
   async function openScan() {
@@ -499,48 +502,26 @@
       });
   });
 
-  // 보이지 않는 창으로 구글에 폼 제출 → 구글이 보내는 "저장 완료" 신호를 받음
+  // GET 방식 저장 요청: 구글이 주소를 돌려보내도 내용이 유지되고, 결과는 콜백으로 받음
   function postViaFrame(data) {
     return new Promise((resolve, reject) => {
-      const rid = Date.now().toString(36) + Math.random().toString(36).slice(2);
-      const name = 'gse_' + rid;
-      const frame = document.createElement('iframe');
-      frame.name = name;
-      frame.style.display = 'none';
-      document.body.appendChild(frame);
-
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = API_URL;
-      form.target = name;
-      form.acceptCharset = 'UTF-8';
-      form.style.display = 'none';
-      [['payload', JSON.stringify(data)], ['rid', rid]].forEach(([k, v]) => {
-        const i = document.createElement('input');
-        i.type = 'hidden'; i.name = k; i.value = v;
-        form.appendChild(i);
-      });
-      document.body.appendChild(form);
-
+      const cb = 'gseCb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const sc = document.createElement('script');
       let timer;
       const cleanup = () => {
-        window.removeEventListener('message', onMsg);
         clearTimeout(timer);
-        setTimeout(() => { form.remove(); frame.remove(); }, 1000);
+        try { delete window[cb]; } catch (e) { window[cb] = undefined; }
+        sc.remove();
       };
-      const onMsg = ev => {
-        let host = '';
-        try { host = new URL(ev.origin).hostname; } catch (e) { return; }
-        if (!/(^|\.)googleusercontent\.com$|(^|\.)google\.com$/.test(host)) return;
-        let d = ev.data;
-        if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) { return; } }
-        if (!d || !d.gse || d.rid !== rid) return;
+      window[cb] = res => {
         cleanup();
-        d.ok ? resolve(d) : reject(new Error(d.error || '다시 시도해 주세요'));
+        res && res.ok ? resolve(res) : reject(new Error((res && res.error) || '다시 시도해 주세요'));
       };
-      window.addEventListener('message', onMsg);
+      sc.onerror = () => { cleanup(); reject(new Error('저장 주소에 연결하지 못했습니다')); };
       timer = setTimeout(() => { cleanup(); reject(new Error('TIMEOUT')); }, 20000);
-      form.submit();
+      sc.src = API_URL + '?action=save&callback=' + cb +
+        '&payload=' + encodeURIComponent(JSON.stringify(data)) + '&t=' + Date.now();
+      document.head.appendChild(sc);
     });
   }
 
