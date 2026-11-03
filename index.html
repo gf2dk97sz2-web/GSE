@@ -46,7 +46,7 @@
 </style>
 </head>
 <body>
-<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v10</span></header>
+<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v11</span></header>
 
 <main>
   <div class="card" data-f="zone">
@@ -502,27 +502,25 @@
       });
   });
 
-  // GET 방식 저장 요청: 구글이 주소를 돌려보내도 내용이 유지되고, 결과는 콜백으로 받음
+  // 저장 요청: 구글 로그인 정보를 빼고(GET) 보내서 구글이 계정 주소로 돌려보내지 않게 함
   function postViaFrame(data) {
-    return new Promise((resolve, reject) => {
-      const cb = 'gseCb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-      const sc = document.createElement('script');
-      let timer;
-      const cleanup = () => {
-        clearTimeout(timer);
-        try { delete window[cb]; } catch (e) { window[cb] = undefined; }
-        sc.remove();
-      };
-      window[cb] = res => {
-        cleanup();
-        res && res.ok ? resolve(res) : reject(new Error((res && res.error) || '다시 시도해 주세요'));
-      };
-      sc.onerror = () => { cleanup(); reject(new Error('저장 주소에 연결하지 못했습니다')); };
-      timer = setTimeout(() => { cleanup(); reject(new Error('TIMEOUT')); }, 20000);
-      sc.src = API_URL + '?action=save&callback=' + cb +
-        '&payload=' + encodeURIComponent(JSON.stringify(data)) + '&t=' + Date.now();
-      document.head.appendChild(sc);
-    });
+    const url = API_URL + '?action=save&payload=' + encodeURIComponent(JSON.stringify(data)) + '&t=' + Date.now();
+    const ctrl = ('AbortController' in window) ? new AbortController() : null;
+    const timer = setTimeout(() => { if (ctrl) ctrl.abort(); }, 20000);
+    return fetch(url, { method: 'GET', credentials: 'omit', cache: 'no-store', redirect: 'follow', signal: ctrl ? ctrl.signal : undefined })
+      .then(r => r.text())
+      .then(t => {
+        let res;
+        try { res = JSON.parse(t); } catch (e) { throw new Error('구글 응답을 읽지 못했습니다'); }
+        if (!res || !res.ok) throw new Error((res && res.error) || '다시 시도해 주세요');
+        return res;
+      })
+      .catch(err => {
+        if (err && err.name === 'AbortError') throw new Error('TIMEOUT');
+        if (err && /fetch|Load failed|NetworkError/i.test(err.message)) throw new Error('저장 주소에 연결하지 못했습니다');
+        throw err;
+      })
+      .finally(() => clearTimeout(timer));
   }
 
   // 저장 후 초기화 (Zone Code는 유지)
