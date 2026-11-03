@@ -46,7 +46,7 @@
 </style>
 </head>
 <body>
-<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v11</span></header>
+<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v12</span></header>
 
 <main>
   <div class="card" data-f="zone">
@@ -463,12 +463,60 @@
   }
 
   // ===== 저장 =====
-  $('save').addEventListener('click', () => {
-    document.querySelectorAll('.err').forEach(el => el.classList.remove('err'));
+  // 저장 요청마다 고유번호(rid)를 붙여 보내고, 서버가 같은 번호는 한 번만 저장 → 재시도해도 중복 저장 없음
+  let pending = null;   // 자동 저장이 안 돼 "새 창으로 저장"을 기다리는 건 { key, rid }
+
+  function newRid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+  function saveUrl(data, rid, extra) {
+    return API_URL + '?action=save&rid=' + rid + '&payload=' + encodeURIComponent(JSON.stringify(data)) +
+      (extra || '') + '&t=' + Date.now();
+  }
+  function serverError(msg) { const e = new Error(msg || '다시 시도해 주세요'); e.server = true; return e; }
+
+  // 방식 1: 로그인 정보 없이 바로 요청
+  function viaFetch(data, rid) {
+    const ctrl = ('AbortController' in window) ? new AbortController() : null;
+    const timer = setTimeout(() => { if (ctrl) ctrl.abort(); }, 10000);
+    return fetch(saveUrl(data, rid), { credentials: 'omit', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+      .then(r => r.text())
+      .then(t => {
+        let res; try { res = JSON.parse(t); } catch (e) { throw new Error('parse'); }
+        if (!res.ok) throw serverError(res.error);
+        return res;
+      })
+      .finally(() => clearTimeout(timer));
+  }
+
+  // 방식 2: 스크립트로 불러오기
+  function viaScript(data, rid) {
+    return new Promise((resolve, reject) => {
+      const cb = 'gseCb_' + rid;
+      const sc = document.createElement('script');
+      let timer;
+      const cleanup = () => { clearTimeout(timer); try { delete window[cb]; } catch (e) { window[cb] = undefined; } sc.remove(); };
+      window[cb] = res => { cleanup(); res && res.ok ? resolve(res) : reject(serverError(res && res.error)); };
+      sc.onerror = () => { cleanup(); reject(new Error('script')); };
+      timer = setTimeout(() => { cleanup(); reject(new Error('timeout')); }, 10000);
+      sc.src = saveUrl(data, rid, '&callback=' + cb);
+      document.head.appendChild(sc);
+    });
+  }
+
+  async function sendSave(data, rid) {
+    try { return await viaFetch(data, rid); } catch (e) { if (e.server) throw e; }
+    try { return await viaScript(data, rid); } catch (e) { if (e.server) throw e; }
+    throw new Error('NEED_WINDOW');
+  }
+
+  function collectData() {
     const data = {};
     ['zone','name','phone','deviceType','color','coupon','codentify','payType','amount','approval','depositor']
       .forEach(id => data[id] = $(id).value.trim());
+    return data;
+  }
 
+  function validate(data) {
+    document.querySelectorAll('.err').forEach(el => el.classList.remove('err'));
     const need = REQUIRED.slice();
     if (data.payType === '카드') need.push('approval');
     const missing = need.filter(k => !data[k]);
@@ -476,52 +524,73 @@
       missing.forEach(k => document.querySelector('[data-f="' + k + '"]').classList.add('err'));
       document.querySelector('[data-f="' + missing[0] + '"]').scrollIntoView({ behavior: 'smooth', block: 'center' });
       toast('필수 항목을 입력해 주세요');
+      return false;
+    }
+    return true;
+  }
+
+  function setSaveBtn(label, disabled, mode) {
+    $('save').textContent = label;
+    $('save').disabled = !!disabled;
+    $('save').dataset.mode = mode || '';
+  }
+
+  function onSaved(data) {
+    pending = null;
+    savedCount++;
+    $('cnt').textContent = '이번 접속 저장 ' + savedCount + '건';
+    try { localStorage.setItem('gse_zone', data.zone); } catch (e) {}
+    resetForm();
+    setSaveBtn('저장', false);
+    toast('저장되었습니다');
+  }
+
+  // 방식 3: 새 창으로 저장 (버튼을 눌러야 열 수 있어서 직원이 한 번 더 누름)
+  window.addEventListener('message', ev => {
+    let host = '';
+    try { host = new URL(ev.origin).hostname; } catch (e) { return; }
+    if (!/(^|\.)googleusercontent\.com$|(^|\.)google\.com$/.test(host)) return;
+    const d = ev.data;
+    if (!d || !d.gse || !pending || d.rid !== pending.rid) return;
+    if (d.ok) onSaved(pending.data);
+    else { toast('저장 실패: ' + (d.error || '다시 시도해 주세요')); }
+  });
+
+  $('save').addEventListener('click', async () => {
+    // 새 창에서 저장을 마치고 돌아온 경우 → 다음 고객 입력으로 초기화
+    if ($('save').dataset.mode === 'next' && pending) { onSaved(pending.data); return; }
+
+    const data = collectData();
+    if (!validate(data)) return;
+    const key = JSON.stringify(data);
+
+    // 자동 저장이 실패했던 같은 내용 → 새 창으로 저장
+    if (pending && pending.key === key) {
+      pending.data = data;
+      const w = window.open(saveUrl(data, pending.rid, '&mode=page'), '_blank');
+      if (!w) { toast('팝업이 차단됐습니다. 브라우저 설정에서 팝업을 허용해 주세요'); return; }
+      toast('새 창에 "저장되었습니다"가 보이면 닫고 돌아와 "다음 고객 입력"을 눌러주세요');
+      setSaveBtn('다음 고객 입력', false, 'next');
       return;
     }
 
-    $('save').disabled = true;
-    $('save').textContent = '저장 중';
-    postViaFrame(data)
-      .then(() => {
-        savedCount++;
-        $('cnt').textContent = '이번 접속 저장 ' + savedCount + '건';
-        try { localStorage.setItem('gse_zone', data.zone); } catch (e) {}
-        resetForm();
-        toast('저장되었습니다');
-      })
-      .catch(err => {
-        if (err && err.message === 'TIMEOUT') {
-          toast('응답이 없습니다. 시트에 저장됐는지 확인 후 다시 시도해 주세요');
-        } else {
-          toast('저장 실패: ' + ((err && err.message) || '다시 시도해 주세요'));
-        }
-      })
-      .finally(() => {
-        $('save').disabled = false;
-        $('save').textContent = '저장';
-      });
+    const rid = newRid();
+    pending = null;
+    setSaveBtn('저장 중', true);
+    try {
+      await sendSave(data, rid);
+      onSaved(data);
+    } catch (err) {
+      if (err && err.message === 'NEED_WINDOW') {
+        pending = { key, rid, data };
+        setSaveBtn('새 창으로 저장', false);
+        toast('한 번 더 눌러 새 창으로 저장해 주세요');
+      } else {
+        setSaveBtn('저장', false);
+        toast('저장 실패: ' + ((err && err.message) || '다시 시도해 주세요'));
+      }
+    }
   });
-
-  // 저장 요청: 구글 로그인 정보를 빼고(GET) 보내서 구글이 계정 주소로 돌려보내지 않게 함
-  function postViaFrame(data) {
-    const url = API_URL + '?action=save&payload=' + encodeURIComponent(JSON.stringify(data)) + '&t=' + Date.now();
-    const ctrl = ('AbortController' in window) ? new AbortController() : null;
-    const timer = setTimeout(() => { if (ctrl) ctrl.abort(); }, 20000);
-    return fetch(url, { method: 'GET', credentials: 'omit', cache: 'no-store', redirect: 'follow', signal: ctrl ? ctrl.signal : undefined })
-      .then(r => r.text())
-      .then(t => {
-        let res;
-        try { res = JSON.parse(t); } catch (e) { throw new Error('구글 응답을 읽지 못했습니다'); }
-        if (!res || !res.ok) throw new Error((res && res.error) || '다시 시도해 주세요');
-        return res;
-      })
-      .catch(err => {
-        if (err && err.name === 'AbortError') throw new Error('TIMEOUT');
-        if (err && /fetch|Load failed|NetworkError/i.test(err.message)) throw new Error('저장 주소에 연결하지 못했습니다');
-        throw err;
-      })
-      .finally(() => clearTimeout(timer));
-  }
 
   // 저장 후 초기화 (Zone Code는 유지)
   function resetForm() {
