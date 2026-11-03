@@ -206,9 +206,34 @@
     return [Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE];
   }
 
+  // GS1 형식(01 상품번호 + 21 일련번호 ...)에서 기기번호(21 뒤 값)만 꺼내기
+  function extractCodentify(raw) {
+    const GS = '\u001d';
+    let s = String(raw || '').replace(/^\]d2/, '').replace(/[\u0000-\u001c\u001e-\u001f\u007f�]/g, '');
+    s = s.replace(/^\u001d+/, '').trim();
+    const FIXED = { '00': 18, '01': 14, '02': 14, '11': 6, '12': 6, '13': 6, '15': 6, '16': 6, '17': 6 };
+    let i = 0, guard = 0;
+    while (i < s.length && guard++ < 10) {
+      const ai = s.substr(i, 2);
+      if (ai === '21') {
+        let end = s.indexOf(GS, i + 2);
+        if (end < 0) end = s.length;
+        return s.substring(i + 2, end).replace(/[^A-Za-z0-9]/g, '');
+      }
+      if (FIXED[ai]) { i += 2 + FIXED[ai]; if (s[i] === GS) i++; continue; }
+      if (/^\d\d$/.test(ai)) {          // 길이가 정해지지 않은 다른 항목 → 구분기호까지 건너뛰기
+        const end = s.indexOf(GS, i + 2);
+        if (end < 0) break;
+        i = end + 1; continue;
+      }
+      break;
+    }
+    return s.replace(/[\u001d]/g, '').trim();  // GS1 형식이 아니면 읽은 값 그대로
+  }
+
   function onScanned(text) {
     if (!scanning) return;
-    $('codentify').value = String(text).trim();
+    $('codentify').value = extractCodentify(text);
     if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} }
     closeScan();
     toast('인식 완료: 라벨과 같은지 확인해 주세요');
