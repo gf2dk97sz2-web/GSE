@@ -46,7 +46,7 @@
 </style>
 </head>
 <body>
-<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v6</span></header>
+<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v7</span></header>
 
 <main>
   <div class="card" data-f="zone">
@@ -140,7 +140,7 @@
     payType: ['카드','현금']
   };
   // 저장 주소: GSE 프로젝트의 웹 앱 URL (/exec)
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwPdh7Ec1TU3ZZt1Q4uofkLZdqCQQfSc80D6dpKeeU97eTbka1Ticp4AoORZBM4sFyL/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw2e_7mxnu7-ReZvU8raOSA3qQH1-OoZvP0j_kqEfgfQ6d5Utv-wThH93yoqbDK0r_8/exec';
   const REQUIRED = ['zone','name','phone','deviceType','coupon','payType','amount'];
 
   const $ = id => document.getElementById(id);
@@ -493,7 +493,7 @@
         toast('저장되었습니다');
       })
       .catch(err => {
-        toast('저장 실패: ' + (err && err.message && err.message !== 'Failed to fetch' ? err.message : '인터넷 연결을 확인하고 다시 시도해 주세요'));
+        toast('저장 실패: ' + (err && err.message && !/fetch|Load failed|NetworkError/i.test(err.message) ? err.message : '인터넷 연결을 확인하고 다시 시도해 주세요'));
       })
       .finally(() => {
         $('save').disabled = false;
