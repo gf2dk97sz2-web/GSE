@@ -8,6 +8,7 @@
   * { box-sizing: border-box; }
   body { margin: 0; font-family: 'Malgun Gothic', -apple-system, sans-serif; background: #f2f0f7; color: #222; }
   header { background: #673ab7; color: #fff; padding: 14px 16px; font-size: 17px; font-weight: bold; position: sticky; top: 0; z-index: 5; }
+  header small { font-size: 12px; font-weight: normal; opacity: .8; }
   main { padding: 12px 12px 100px; }
   .card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
   label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
@@ -16,18 +17,49 @@
   select { appearance: none; -webkit-appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='2' fill='none'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 14px center; }
+  select:disabled { background-color: #f4f4f4; color: #999; }
   input:focus, select:focus { outline: none; border-color: #673ab7; box-shadow: 0 0 0 2px rgba(103,58,183,.2); }
-  .err input, .err select { border-color: #d93025; }
+  .err input, .err select, .err .picker, .err .chip { border-color: #d93025; }
   .row { display: flex; gap: 8px; }
   .row input { flex: 1; min-width: 0; }
   .cam { width: 52px; height: 46px; border: none; border-radius: 8px; background: #673ab7; color: #fff; font-size: 22px; flex-shrink: 0; }
   .hint { font-size: 12px; color: #777; margin-top: 6px; }
   .hidden { display: none !important; }
+
+  /* 버튼 선택형 (기기타입, 결제유형) */
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { flex: 1 1 0; min-width: 64px; height: 44px; border: 1px solid #ccc; border-radius: 22px; background: #fff;
+    font-size: 15px; font-family: inherit; color: #333; }
+  .chip.on { background: #673ab7; border-color: #673ab7; color: #fff; font-weight: bold; }
+
+  /* 쿠폰 선택 칸 */
+  .picker { width: 100%; min-height: 46px; display: flex; align-items: center; padding: 0 34px 0 12px; border: 1px solid #ccc;
+    border-radius: 8px; background: #fff; font-size: 13px; font-family: inherit; color: #222; text-align: left; position: relative; }
+  .picker::after { content: ""; position: absolute; right: 14px; top: 50%; width: 8px; height: 8px; margin-top: -6px;
+    border-right: 2px solid #666; border-bottom: 2px solid #666; transform: rotate(45deg); }
+  .picker:disabled { background: #f4f4f4; color: #999; }
+  .picker .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { display: inline-block; font-size: 10px; font-weight: bold; line-height: 1; padding: 3px 5px; border-radius: 4px; margin-right: 6px; flex-shrink: 0; }
+  .b-las { background: #dbe8fb; color: #1f5fbf; }
+  .b-lau { background: #fde3c8; color: #b35a00; }
+  .promo { font-size: 12px; color: #673ab7; margin-top: 6px; min-height: 0; }
+
+  /* 쿠폰 선택창 */
+  #couponSheet { position: fixed; inset: 0; z-index: 25; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; }
+  .sheet { width: 100%; max-height: 78vh; background: #fff; border-radius: 16px 16px 0 0; display: flex; flex-direction: column; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #eee; font-size: 15px; font-weight: bold; }
+  .sheet-head button { border: none; background: none; font-size: 14px; color: #673ab7; font-family: inherit; }
+  .sheet-list { overflow-y: auto; padding-bottom: 20px; }
+  .opt { display: flex; align-items: center; width: 100%; padding: 13px 16px; border: none; border-bottom: 1px solid #f0f0f0;
+    background: #fff; font-size: 13px; font-family: inherit; color: #222; text-align: left; }
+  .opt .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .opt.on { background: #f3eefc; font-weight: bold; }
+
   footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #ddd; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
   footer span { flex: 1; font-size: 13px; color: #555; }
-  #save { height: 48px; padding: 0 32px; border: none; border-radius: 10px; background: #673ab7; color: #fff; font-size: 16px; font-weight: bold; }
+  #save { height: 48px; padding: 0 28px; border: none; border-radius: 10px; background: #673ab7; color: #fff; font-size: 16px; font-weight: bold; }
   #save:disabled { background: #aaa; }
-  #toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: rgba(0,0,0,.85); color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; z-index: 30; }
+  #toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: rgba(0,0,0,.85); color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 92vw; text-align: center; z-index: 30; }
   #toast.show { opacity: 1; }
 
   /* 실시간 스캔 화면 */
@@ -46,7 +78,7 @@
 </style>
 </head>
 <body>
-<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v12</span></header>
+<header>[안양]GSE 입력 <small>v13</small></header>
 
 <main>
   <div class="card" data-f="zone">
@@ -66,17 +98,23 @@
 
   <div class="card" data-f="deviceType">
     <label>기기타입 <span class="req">*</span></label>
-    <select id="deviceType"></select>
+    <div class="chips" id="deviceChips"></div>
   </div>
 
   <div class="card" data-f="color">
-    <label>컬러</label>
-    <select id="color"></select>
+    <label>컬러 <span class="req">*</span></label>
+    <select id="color" disabled><option value="">기기타입을 먼저 선택</option></select>
   </div>
 
   <div class="card" data-f="coupon">
     <label>쿠폰명(프로그램) <span class="req">*</span></label>
-    <select id="coupon"></select>
+    <button type="button" class="picker" id="couponBtn" disabled><span class="txt">기기타입을 먼저 선택</span></button>
+    <div class="promo" id="promoText"></div>
+  </div>
+
+  <div class="card" data-f="opcode">
+    <label>Opcode</label>
+    <input id="opcode" type="text" autocomplete="off" placeholder="선택 입력">
   </div>
 
   <div class="card" data-f="codentify">
@@ -91,17 +129,17 @@
 
   <div class="card" data-f="payType">
     <label>결제유형 <span class="req">*</span></label>
-    <select id="payType"></select>
+    <div class="chips" id="payChips"></div>
   </div>
 
   <div class="card" data-f="amount">
-    <label>금액 <span class="req">*</span></label>
-    <input id="amount" type="text" inputmode="numeric" placeholder="0" autocomplete="off">
+    <label>금액(실판매) <span class="req">*</span></label>
+    <input id="amount" type="text" inputmode="numeric" placeholder="쿠폰을 고르면 자동 입력" autocomplete="off">
   </div>
 
   <div class="card hidden" data-f="approval" id="approvalWrap">
     <label>카드 승인번호 <span class="req">*</span></label>
-    <input id="approval" type="text" inputmode="numeric" autocomplete="off">
+    <input id="approval" type="text" inputmode="numeric" autocomplete="off" placeholder="8자리">
   </div>
 
   <div class="card hidden" data-f="depositor" id="depositorWrap">
@@ -109,6 +147,13 @@
     <input id="depositor" type="text" autocomplete="off">
   </div>
 </main>
+
+<div id="couponSheet" class="hidden">
+  <div class="sheet" role="dialog" aria-label="쿠폰 선택">
+    <div class="sheet-head"><span>쿠폰명(프로그램) 선택</span><button type="button" id="sheetClose">닫기</button></div>
+    <div class="sheet-list" id="couponList"></div>
+  </div>
+</div>
 
 <div id="scanModal" class="hidden">
   <div id="scanTop"><span>기기번호 스캔</span><button type="button" id="scanClose">닫기</button></div>
@@ -131,35 +176,140 @@
 
 <script>
 (function () {
-  // ===== 선택 항목 (보기 수정은 여기서) =====
-  const OPTIONS = {
-    zone: ['BOM','Supv','2001','2002','2003','2004','2005','2006','2007','2008','2009','2010','2011','2012'],
-    deviceType: ['미드','원','VEEV','프라임'],
-    color: ['일렉트릭 퍼플','바이올렛','블랙','블루','그린','VEEV 블랙','VEEV 블루','VEEV 그린','VEEV 엠버','VEEV 마젠타','가넷 레드'],
-    coupon: ['LAS_Assisted Welcome_30000','LAS_Lead_Journey_ALL_35000','LAU_[Club Redemption]_4.1_ALL_25000','LAU_[Club Redemption]_4.1_ALL_30000','LAS_Seasonal_Assisted Welcome_30000','LAU_[Abandoner]_ALL_20000','VEEV LAS','VEEV LAU'],
-    payType: ['카드','현금']
-  };
   // 저장 주소: GSE 프로젝트의 웹 앱 URL (/exec)
   const API_URL = 'https://script.google.com/macros/s/AKfycbw2e_7mxnu7-ReZvU8raOSA3qQH1-OoZvP0j_kqEfgfQ6d5Utv-wThH93yoqbDK0r_8/exec';
-  const REQUIRED = ['zone','name','phone','deviceType','coupon','payType','amount'];
+
+  // ===== 기준 정보 (수정은 여기서) =====
+  // Zone Code: [화면 표시, 시트 저장, 소매점 코드]
+  const ZONES = [
+    ['BOM',  '20지점 SE 지점장',   3051118],
+    ['Supv', '20지점 SE 부지점장', 3049571],
+    ['2001', 'SR2001-SE', 3089851], ['2002', 'SR2002-SE', 3089853], ['2003', 'SR2003-SE', 3089855],
+    ['2004', 'SR2004-SE', 3089856], ['2005', 'SR2005-SE', 3089857], ['2006', 'SR2006-SE', 3089858],
+    ['2007', 'SR2007-SE', 3089859], ['2008', 'SR2008-SE', 3089860], ['2009', 'SR2009-SE', 3089861],
+    ['2010', 'SR2010-SE', 3089862], ['2011', 'SR2011-SE', 3089863], ['2012', 'SR2012-SE', 3089864]
+  ];
+
+  // 쿠폰: [쿠폰명(화면), 할인액, 적용프로모션] → 실판매 = 정가 - 할인액
+  const ILUMA_COUPONS = [
+    ['(정상소매)', 0, ''],
+    ['LAS_Assisted Welcome_30000', 30000, 'Assisted Welcome'],
+    ['LAS_Lead_Journey_ALL_35000', 35000, 'IQOS Friends'],
+    ['LAS_Legend Badge_ALL', 0, ''],
+    ['LAS_Seasonal_Assisted Welcome_30000', 30000, 'AQ Boost'],
+    ['LAU_Legend Badge_ALL', 0, ''],
+    ['LAU_[Abandoner]_ALL_20000', 20000, 'Abandoner Program'],
+    ['LAU_[Club Redemption]_4.1_ALL_10000', 10000, 'Club redemption'],
+    ['LAU_[Club Redemption]_4.1_ALL_30000', 30000, 'Club redemption'],
+    ['LAU_[EOL]_4.1_ALL_10000', 10000, ''],
+    ['LAU_[일루마 Care]_4.1_ALL_20000', 20000, 'ILUMA Care']
+  ];
+  const VEEV_COUPONS = [
+    ['(정상소매)', 0, ''],
+    ['LAS_VEEV ALLDAY_19000', 19000, 'Veev All Day'],
+    ['LAU_VEEV ALLDAY_19000', 19000, 'Veev All Day']
+  ];
+
+  // 기기타입: 정가, 컬러 [이름, 제품코드], 쿠폰 목록 (버튼 순서대로)
+  const DEVICES = [
+    ['비브', { price: 29000, coupons: VEEV_COUPONS, colors: [
+      ['앰버', 'VVGLAMB'], ['그린', 'VVMAGRE'], ['블루', 'VVOCBLU'], ['마젠타', 'VVORMAG'], ['블랙', 'VVSLBLA']] }],
+    ['i원', { price: 59000, coupons: ILUMA_COUPONS, colors: [
+      ['브리즈 블루', 'IIOMKBB'], ['디지털 바이올렛', 'IIOMKDV'], ['일렉트릭 퍼플', 'IIOMKEP'],
+      ['리프 그린', 'IIOMKLG'], ['미드나잇 블랙', 'IIOMKMB'], ['비비드 테라코타', 'IIOMKVT']] }],
+    ['i미드', { price: 89000, coupons: ILUMA_COUPONS, colors: [
+      ['브리즈 블루', 'IIMKMBB'], ['디지털 바이올렛', 'IIMKMDG'], ['일렉트릭 퍼플', 'IIMKMEP'],
+      ['리프 그린', 'IIMKMLG'], ['미드나잇 블랙', 'IIMKMMB'], ['비비드 테라코타', 'IIMKMVT']] }],
+    ['i프라임', { price: 129000, coupons: ILUMA_COUPONS, colors: [
+      ['브리즈 블루', 'IIMKPBB'], ['일렉트릭 퍼플', 'IIMKPEP'], ['가넷 레드', 'IIMKPGR'], ['미드나잇 블랙', 'IIMKPMB']] }]
+  ];
+  const DEVICE_MAP = Object.fromEntries(DEVICES);
+  const PAY_TYPES = ['카드', '현금'];
+  const REQUIRED = ['zone','name','phone','deviceType','color','coupon','payType','amount'];
 
   const $ = id => document.getElementById(id);
   let savedCount = 0;
+  const state = { deviceType: '', payType: '', coupon: null };   // coupon: [이름, 할인액, 프로모션]
 
-  // 선택 칸 채우기
-  Object.keys(OPTIONS).forEach(id => {
-    $(id).innerHTML = '<option value="">선택</option>' +
-      OPTIONS[id].map(v => '<option value="' + v + '">' + v + '</option>').join('');
+  // ===== 화면 구성 =====
+  $('zone').innerHTML = '<option value="">선택</option>' +
+    ZONES.map(z => '<option value="' + z[0] + '">' + z[0] + '</option>').join('');
+  try { const z = localStorage.getItem('gse_zone'); if (z && ZONES.some(x => x[0] === z)) $('zone').value = z; } catch (e) {}
+
+  function makeChips(boxId, items, onPick) {
+    const box = $(boxId);
+    box.innerHTML = '';
+    items.forEach(v => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = v; b.dataset.v = v;
+      b.addEventListener('click', () => {
+        box.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b));
+        onPick(v);
+      });
+      box.appendChild(b);
+    });
+  }
+  function clearChips(boxId) { $(boxId).querySelectorAll('.chip').forEach(c => c.classList.remove('on')); }
+
+  // 기기타입 선택 → 컬러·쿠폰 목록 바꾸기
+  makeChips('deviceChips', DEVICES.map(d => d[0]), v => {
+    if (state.deviceType === v) return;
+    state.deviceType = v;
+    const dev = DEVICE_MAP[v];
+    $('color').disabled = false;
+    $('color').innerHTML = '<option value="">선택</option>' +
+      dev.colors.map(c => '<option value="' + c[0] + '">' + c[0] + '</option>').join('');
+    setCoupon(null);
+    $('couponBtn').disabled = false;
   });
 
-  try { const z = localStorage.getItem('gse_zone'); if (z) $('zone').value = z; } catch (e) {}
-
-  // 결제유형에 따라 칸 보이기
-  $('payType').addEventListener('change', () => {
-    const v = $('payType').value;
+  // 결제유형 선택 → 승인번호 / 입금자명 칸
+  makeChips('payChips', PAY_TYPES, v => {
+    state.payType = v;
     $('approvalWrap').classList.toggle('hidden', v !== '카드');
     $('depositorWrap').classList.toggle('hidden', v !== '현금');
   });
+
+  // 쿠폰 표시 (LAS/LAU 색 배지 + 나머지 이름)
+  function couponHtml(name) {
+    const m = name.match(/^(LAS|LAU)_(.*)$/);
+    const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    if (!m) return '<span class="txt">' + esc(name) + '</span>';
+    return '<span class="badge b-' + m[1].toLowerCase() + '">' + m[1] + '</span><span class="txt">' + esc(m[2]) + '</span>';
+  }
+
+  function setCoupon(c) {
+    state.coupon = c;
+    if (!c) {
+      $('couponBtn').innerHTML = '<span class="txt">' + (state.deviceType ? '선택' : '기기타입을 먼저 선택') + '</span>';
+      $('promoText').textContent = '';
+      $('amount').value = '';
+      return;
+    }
+    $('couponBtn').innerHTML = couponHtml(c[0]);
+    $('promoText').textContent = c[2] ? '적용프로모션: ' + c[2] : '';
+    const price = DEVICE_MAP[state.deviceType].price - c[1];
+    $('amount').value = price.toLocaleString('ko-KR');   // 금액 자동 입력 (직접 수정 가능)
+  }
+
+  // 쿠폰 선택창
+  $('couponBtn').addEventListener('click', () => {
+    if (!state.deviceType) return;
+    const list = DEVICE_MAP[state.deviceType].coupons;
+    $('couponList').innerHTML = '';
+    list.forEach(c => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'opt' + (state.coupon && state.coupon[0] === c[0] ? ' on' : '');
+      b.innerHTML = couponHtml(c[0]);
+      b.addEventListener('click', () => { setCoupon(c); closeSheet(); });
+      $('couponList').appendChild(b);
+    });
+    $('couponSheet').classList.remove('hidden');
+  });
+  function closeSheet() { $('couponSheet').classList.add('hidden'); }
+  $('sheetClose').addEventListener('click', closeSheet);
+  $('couponSheet').addEventListener('click', e => { if (e.target === $('couponSheet')) closeSheet(); });
 
   // 전화번호 자동 하이픈
   $('phone').addEventListener('input', e => {
@@ -463,141 +613,126 @@
   }
 
   // ===== 저장 =====
-  // 저장 요청마다 고유번호(rid)를 붙여 보내고, 서버가 같은 번호는 한 번만 저장 → 재시도해도 중복 저장 없음
-  let pending = null;   // 자동 저장이 안 돼 "새 창으로 저장"을 기다리는 건 { key, rid }
+  // 저장을 누르면 새 창에서 바로 저장 (아이폰·안드로이드 모두 확실히 동작하는 방식)
+  // 저장마다 고유번호(rid)를 붙여, 같은 번호는 서버가 한 번만 저장 → 다시 눌러도 중복 저장 없음
+  let pending = null;   // 새 창으로 보낸 건 { key, rid, view }
 
   function newRid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
-  function saveUrl(data, rid, extra) {
-    return API_URL + '?action=save&rid=' + rid + '&payload=' + encodeURIComponent(JSON.stringify(data)) +
-      (extra || '') + '&t=' + Date.now();
-  }
-  function serverError(msg) { const e = new Error(msg || '다시 시도해 주세요'); e.server = true; return e; }
 
-  // 방식 1: 로그인 정보 없이 바로 요청
-  function viaFetch(data, rid) {
-    const ctrl = ('AbortController' in window) ? new AbortController() : null;
-    const timer = setTimeout(() => { if (ctrl) ctrl.abort(); }, 10000);
-    return fetch(saveUrl(data, rid), { credentials: 'omit', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
-      .then(r => r.text())
-      .then(t => {
-        let res; try { res = JSON.parse(t); } catch (e) { throw new Error('parse'); }
-        if (!res.ok) throw serverError(res.error);
-        return res;
-      })
-      .finally(() => clearTimeout(timer));
-  }
+  function collect() {
+    const zoneRow = ZONES.find(z => z[0] === $('zone').value);
+    const dev = DEVICE_MAP[state.deviceType];
+    const colorName = $('color').value;
+    const colorRow = dev ? dev.colors.find(c => c[0] === colorName) : null;
+    const amount = Number($('amount').value.replace(/[^0-9]/g, '')) || 0;
+    const approval = $('approval').value.trim();
+    const pay = state.payType;
+    const notes = [];
+    if (pay === '카드' && !/^\d{8}$/.test(approval)) notes.push('승인번호 확인');
+    const depositor = $('depositor').value.trim();
+    if (pay === '현금' && depositor) notes.push('입금자: ' + depositor);
 
-  // 방식 2: 스크립트로 불러오기
-  function viaScript(data, rid) {
-    return new Promise((resolve, reject) => {
-      const cb = 'gseCb_' + rid;
-      const sc = document.createElement('script');
-      let timer;
-      const cleanup = () => { clearTimeout(timer); try { delete window[cb]; } catch (e) { window[cb] = undefined; } sc.remove(); };
-      window[cb] = res => { cleanup(); res && res.ok ? resolve(res) : reject(serverError(res && res.error)); };
-      sc.onerror = () => { cleanup(); reject(new Error('script')); };
-      timer = setTimeout(() => { cleanup(); reject(new Error('timeout')); }, 10000);
-      sc.src = saveUrl(data, rid, '&callback=' + cb);
-      document.head.appendChild(sc);
-    });
-  }
-
-  async function sendSave(data, rid) {
-    try { return await viaFetch(data, rid); } catch (e) { if (e.server) throw e; }
-    try { return await viaScript(data, rid); } catch (e) { if (e.server) throw e; }
-    throw new Error('NEED_WINDOW');
-  }
-
-  function collectData() {
-    const data = {};
-    ['zone','name','phone','deviceType','color','coupon','codentify','payType','amount','approval','depositor']
-      .forEach(id => data[id] = $(id).value.trim());
-    return data;
+    return {
+      view: {   // 필수 입력 확인용
+        zone: $('zone').value, name: $('name').value.trim(), phone: $('phone').value.trim(),
+        deviceType: state.deviceType, color: colorName, coupon: state.coupon ? state.coupon[0] : '',
+        payType: pay, amount: $('amount').value.trim(), approval: approval
+      },
+      row: {    // 시트 저장값 (서버에서 열 이름에 맞춰 저장)
+        store: zoneRow ? zoneRow[2] : '',
+        zone: zoneRow ? zoneRow[1] : '',
+        brand: colorRow ? colorRow[1] : '',
+        pay: pay,
+        coupon: state.coupon ? state.coupon[0].replace(/\s+/g, '_') : '',
+        qty: 1,
+        disc: dev ? Math.max(0, dev.price - amount) : 0,
+        amt: amount,
+        cash: pay === '현금' ? amount : 0,
+        slip: 1,
+        op: $('opcode').value.trim(),
+        appr: pay === '카드' ? approval : '',
+        cod: $('codentify').value.trim(),
+        promo: state.coupon ? state.coupon[2] : '',
+        name: $('name').value.trim(),
+        phone: $('phone').value.trim(),
+        note: notes.join(' / '),
+        dev: state.deviceType,
+        color: colorName
+      }
+    };
   }
 
-  function validate(data) {
+  function validate(view) {
     document.querySelectorAll('.err').forEach(el => el.classList.remove('err'));
     const need = REQUIRED.slice();
-    if (data.payType === '카드') need.push('approval');
-    const missing = need.filter(k => !data[k]);
+    if (view.payType === '카드') need.push('approval');
+    const missing = need.filter(k => !view[k]);
     if (missing.length) {
-      missing.forEach(k => document.querySelector('[data-f="' + k + '"]').classList.add('err'));
-      document.querySelector('[data-f="' + missing[0] + '"]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      missing.forEach(k => { const el = document.querySelector('[data-f="' + k + '"]'); if (el) el.classList.add('err'); });
+      const first = document.querySelector('[data-f="' + missing[0] + '"]');
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
       toast('필수 항목을 입력해 주세요');
       return false;
     }
     return true;
   }
 
-  function setSaveBtn(label, disabled, mode) {
+  function setSaveBtn(label, mode) {
     $('save').textContent = label;
-    $('save').disabled = !!disabled;
     $('save').dataset.mode = mode || '';
   }
 
-  function onSaved(data) {
+  function onSaved(view) {
     pending = null;
     savedCount++;
     $('cnt').textContent = '이번 접속 저장 ' + savedCount + '건';
-    try { localStorage.setItem('gse_zone', data.zone); } catch (e) {}
+    try { localStorage.setItem('gse_zone', view.zone); } catch (e) {}
     resetForm();
-    setSaveBtn('저장', false);
+    setSaveBtn('저장');
     toast('저장되었습니다');
   }
 
-  // 방식 3: 새 창으로 저장 (버튼을 눌러야 열 수 있어서 직원이 한 번 더 누름)
+  // 새 창이 보내는 "저장 완료" 신호
   window.addEventListener('message', ev => {
     let host = '';
     try { host = new URL(ev.origin).hostname; } catch (e) { return; }
     if (!/(^|\.)googleusercontent\.com$|(^|\.)google\.com$/.test(host)) return;
     const d = ev.data;
     if (!d || !d.gse || !pending || d.rid !== pending.rid) return;
-    if (d.ok) onSaved(pending.data);
-    else { toast('저장 실패: ' + (d.error || '다시 시도해 주세요')); }
+    if (d.ok) onSaved(pending.view);
+    else { setSaveBtn('저장'); pending = null; toast('저장 실패: ' + (d.error || '다시 시도해 주세요')); }
   });
 
-  $('save').addEventListener('click', async () => {
-    // 새 창에서 저장을 마치고 돌아온 경우 → 다음 고객 입력으로 초기화
-    if ($('save').dataset.mode === 'next' && pending) { onSaved(pending.data); return; }
+  $('save').addEventListener('click', () => {
+    // 새 창에서 저장을 마치고 돌아왔는데 자동으로 안 넘어간 경우 → 다음 고객 입력
+    if ($('save').dataset.mode === 'next' && pending) { onSaved(pending.view); return; }
 
-    const data = collectData();
-    if (!validate(data)) return;
-    const key = JSON.stringify(data);
+    const data = collect();
+    if (!validate(data.view)) return;
+    const key = JSON.stringify(data.row);
+    const rid = (pending && pending.key === key) ? pending.rid : newRid();   // 같은 내용이면 같은 번호 (중복 방지)
+    pending = { key, rid, view: data.view };
 
-    // 자동 저장이 실패했던 같은 내용 → 새 창으로 저장
-    if (pending && pending.key === key) {
-      pending.data = data;
-      const w = window.open(saveUrl(data, pending.rid, '&mode=page'), '_blank');
-      if (!w) { toast('팝업이 차단됐습니다. 브라우저 설정에서 팝업을 허용해 주세요'); return; }
-      toast('새 창에 "저장되었습니다"가 보이면 닫고 돌아와 "다음 고객 입력"을 눌러주세요');
-      setSaveBtn('다음 고객 입력', false, 'next');
-      return;
-    }
-
-    const rid = newRid();
-    pending = null;
-    setSaveBtn('저장 중', true);
-    try {
-      await sendSave(data, rid);
-      onSaved(data);
-    } catch (err) {
-      if (err && err.message === 'NEED_WINDOW') {
-        pending = { key, rid, data };
-        setSaveBtn('새 창으로 저장', false);
-        toast('한 번 더 눌러 새 창으로 저장해 주세요');
-      } else {
-        setSaveBtn('저장', false);
-        toast('저장 실패: ' + ((err && err.message) || '다시 시도해 주세요'));
-      }
-    }
+    const url = API_URL + '?action=save&mode=page&rid=' + rid +
+      '&payload=' + encodeURIComponent(JSON.stringify(data.row)) + '&t=' + Date.now();
+    const w = window.open(url, '_blank');
+    if (!w) { toast('새 창이 차단됐습니다. 브라우저 설정에서 팝업을 허용해 주세요'); return; }
+    setSaveBtn('다음 고객 입력', 'next');
+    toast('새 창에 "저장되었습니다"가 보이면 돌아와 주세요');
   });
 
   // 저장 후 초기화 (Zone Code는 유지)
   function resetForm() {
-    ['name','phone','deviceType','color','coupon','codentify','payType','amount','approval','depositor']
-      .forEach(id => $(id).value = '');
+    ['name','phone','opcode','codentify','amount','approval','depositor'].forEach(id => $(id).value = '');
+    state.deviceType = ''; state.payType = ''; state.coupon = null;
+    clearChips('deviceChips'); clearChips('payChips');
+    $('color').innerHTML = '<option value="">기기타입을 먼저 선택</option>';
+    $('color').disabled = true;
+    $('couponBtn').disabled = true;
+    setCoupon(null);
     $('approvalWrap').classList.add('hidden');
     $('depositorWrap').classList.add('hidden');
+    document.querySelectorAll('.err').forEach(el => el.classList.remove('err'));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -607,7 +742,7 @@
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
   }
 })();
 </script>
