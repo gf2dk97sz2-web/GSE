@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>[안양]GSE 입력</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Malgun Gothic', -apple-system, sans-serif; background: #f2f0f7; color: #222; }
+  header { background: #673ab7; color: #fff; padding: 14px 16px; font-size: 17px; font-weight: bold; position: sticky; top: 0; z-index: 5; }
+  main { padding: 12px 12px 100px; }
+  .card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
+  label .req { color: #d93025; }
+  input, select { width: 100%; height: 46px; font-size: 16px; padding: 0 12px; border: 1px solid #ccc; border-radius: 8px; background: #fff; font-family: inherit; color: #222; }
+  select { appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; }
+  input:focus, select:focus { outline: none; border-color: #673ab7; box-shadow: 0 0 0 2px rgba(103,58,183,.2); }
+  .err input, .err select { border-color: #d93025; }
+  .row { display: flex; gap: 8px; }
+  .row input { flex: 1; min-width: 0; }
+  .cam { width: 52px; height: 46px; border: none; border-radius: 8px; background: #673ab7; color: #fff; font-size: 22px; flex-shrink: 0; }
+  .hint { font-size: 12px; color: #777; margin-top: 6px; }
+  .hidden { display: none !important; }
+  footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #ddd; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+  footer span { flex: 1; font-size: 13px; color: #555; }
+  #save { height: 48px; padding: 0 32px; border: none; border-radius: 10px; background: #673ab7; color: #fff; font-size: 16px; font-weight: bold; }
+  #save:disabled { background: #aaa; }
+  #toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: rgba(0,0,0,.85); color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; z-index: 30; }
+  #toast.show { opacity: 1; }
+
+  /* 실시간 스캔 화면 */
+  #scanModal { position: fixed; inset: 0; background: #000; z-index: 20; display: flex; flex-direction: column; }
+  #scanTop { color: #fff; padding: 14px 16px; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+  #scanClose { background: none; border: 1px solid #fff; color: #fff; border-radius: 8px; padding: 6px 14px; font-size: 14px; }
+  #scanView { position: relative; flex: 1; overflow: hidden; }
+  #scanVideo { width: 100%; height: 100%; object-fit: cover; }
+  #scanFrame { position: absolute; left: 50%; top: 50%; width: 220px; height: 220px; transform: translate(-50%, -50%);
+    border: 3px solid #b39af0; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,.45); pointer-events: none; }
+  #reader { width: 100%; height: 100%; }
+  #reader video { object-fit: cover; }
+  #scanBottom { padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  #scanMsg { color: #ddd; font-size: 13px; text-align: center; line-height: 1.5; }
+  #photoBtn { background: #fff; color: #673ab7; border: none; border-radius: 10px; padding: 12px 20px; font-size: 15px; font-weight: bold; }
+</style>
+</head>
+<body>
+<header>[안양]GSE 입력 <span style="font-size:12px;font-weight:normal;opacity:.8">v6</span></header>
+
+<main>
+  <div class="card" data-f="zone">
+    <label>Zone Code <span class="req">*</span></label>
+    <select id="zone"></select>
+  </div>
+
+  <div class="card" data-f="name">
+    <label>고객이름 <span class="req">*</span></label>
+    <input id="name" type="text" autocomplete="off">
+  </div>
+
+  <div class="card" data-f="phone">
+    <label>전화번호 <span class="req">*</span></label>
+    <input id="phone" type="tel" inputmode="numeric" placeholder="010-0000-0000" autocomplete="off">
+  </div>
+
+  <div class="card" data-f="deviceType">
+    <label>기기타입 <span class="req">*</span></label>
+    <select id="deviceType"></select>
+  </div>
+
+  <div class="card" data-f="color">
+    <label>컬러</label>
+    <select id="color"></select>
+  </div>
+
+  <div class="card" data-f="coupon">
+    <label>쿠폰명(프로그램) <span class="req">*</span></label>
+    <select id="coupon"></select>
+  </div>
+
+  <div class="card" data-f="codentify">
+    <label>Codentify Code(기기번호)</label>
+    <div class="row">
+      <input id="codentify" type="text" autocomplete="off" placeholder="📷 스캔 또는 직접 입력">
+      <button type="button" class="cam" id="camBtn">📷</button>
+    </div>
+    <div class="hint">📷 버튼을 누르고 라벨의 네모난 코드를 화면 가운데 틀에 맞추면 자동으로 입력됩니다.</div>
+    <input id="fileInput" type="file" accept="image/*" capture="environment" class="hidden">
+  </div>
+
+  <div class="card" data-f="payType">
+    <label>결제유형 <span class="req">*</span></label>
+    <select id="payType"></select>
+  </div>
+
+  <div class="card" data-f="amount">
+    <label>금액 <span class="req">*</span></label>
+    <input id="amount" type="text" inputmode="numeric" placeholder="0" autocomplete="off">
+  </div>
+
+  <div class="card hidden" data-f="approval" id="approvalWrap">
+    <label>카드 승인번호 <span class="req">*</span></label>
+    <input id="approval" type="text" inputmode="numeric" autocomplete="off">
+  </div>
+
+  <div class="card hidden" data-f="depositor" id="depositorWrap">
+    <label>입금자명 (판매자와 다른 경우)</label>
+    <input id="depositor" type="text" autocomplete="off">
+  </div>
+</main>
+
+<div id="scanModal" class="hidden">
+  <div id="scanTop"><span>기기번호 스캔</span><button type="button" id="scanClose">닫기</button></div>
+  <div id="scanView">
+    <video id="scanVideo" playsinline muted autoplay></video>
+    <div id="reader" class="hidden"></div>
+    <div id="scanFrame"></div>
+  </div>
+  <div id="scanBottom">
+    <div id="scanMsg">네모난 코드를 틀 안에 맞춰주세요</div>
+    <button type="button" id="photoBtn">사진 찍어서 인식하기</button>
+  </div>
+</div>
+
+<footer>
+  <span id="cnt">이번 접속 저장 0건</span>
+  <button id="save" type="button">저장</button>
+</footer>
+<div id="toast"></div>
+
+<script>
+(function () {
+  // ===== 선택 항목 (보기 수정은 여기서) =====
+  const OPTIONS = {
+    zone: ['BOM','Supv','2001','2002','2003','2004','2005','2006','2007','2008','2009','2010','2011','2012'],
+    deviceType: ['미드','원','VEEV','프라임'],
+    color: ['일렉트릭 퍼플','바이올렛','블랙','블루','그린','VEEV 블랙','VEEV 블루','VEEV 그린','VEEV 엠버','VEEV 마젠타','가넷 레드'],
+    coupon: ['LAS_Assisted Welcome_30000','LAS_Lead_Journey_ALL_35000','LAU_[Club Redemption]_4.1_ALL_25000','LAU_[Club Redemption]_4.1_ALL_30000','LAS_Seasonal_Assisted Welcome_30000','LAU_[Abandoner]_ALL_20000','VEEV LAS','VEEV LAU'],
+    payType: ['카드','현금']
+  };
+  // 저장 주소: GSE 프로젝트의 웹 앱 URL (/exec)
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwPdh7Ec1TU3ZZt1Q4uofkLZdqCQQfSc80D6dpKeeU97eTbka1Ticp4AoORZBM4sFyL/exec';
+  const REQUIRED = ['zone','name','phone','deviceType','coupon','payType','amount'];
+
+  const $ = id => document.getElementById(id);
+  let savedCount = 0;
+
+  // 선택 칸 채우기
+  Object.keys(OPTIONS).forEach(id => {
+    $(id).innerHTML = '<option value="">선택</option>' +
+      OPTIONS[id].map(v => '<option value="' + v + '">' + v + '</option>').join('');
+  });
+
+  try { const z = localStorage.getItem('gse_zone'); if (z) $('zone').value = z; } catch (e) {}
+
+  // 결제유형에 따라 칸 보이기
+  $('payType').addEventListener('change', () => {
+    const v = $('payType').value;
+    $('approvalWrap').classList.toggle('hidden', v !== '카드');
+    $('depositorWrap').classList.toggle('hidden', v !== '현금');
+  });
+
+  // 전화번호 자동 하이픈
+  $('phone').addEventListener('input', e => {
+    const d = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+    e.target.value = d.length < 4 ? d : d.length < 8 ? d.slice(0,3) + '-' + d.slice(3)
+      : d.slice(0,3) + '-' + d.slice(3, d.length - 4) + '-' + d.slice(-4);
+  });
+
+  // 금액 콤마
+  $('amount').addEventListener('input', e => {
+    const d = e.target.value.replace(/[^0-9]/g, '');
+    e.target.value = d ? Number(d).toLocaleString('ko-KR') : '';
+  });
+
+  // ===== 기기번호 스캔 =====
+  const FORMATS_NATIVE = ['data_matrix', 'qr_code'];
+  let stream = null, detector = null, loopTimer = null, h5 = null, libPromise = null, scanning = false;
+
+  function loadScanLib() {
+    if (window.Html5Qrcode) return Promise.resolve();
+    if (!libPromise) {
+      libPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+        s.onload = resolve;
+        s.onerror = () => { libPromise = null; reject(new Error('lib')); };
+        document.head.appendChild(s);
+      });
+    }
+    return libPromise;
+  }
+  loadScanLib().catch(() => {});
+
+  async function getNativeDetector() {
+    if (!('BarcodeDetector' in window)) return null;
+    try {
+      const supported = await BarcodeDetector.getSupportedFormats();
+      const f = FORMATS_NATIVE.filter(x => supported.includes(x));
+      return f.length ? new BarcodeDetector({ formats: f }) : null;
+    } catch (e) { return null; }
+  }
+
+  function h5Formats() {
+    return [Html5QrcodeSupportedFormats.DATA_MATRIX, Html5QrcodeSupportedFormats.QR_CODE];
+  }
+
+  // GS1 형식(01 상품번호 + 21 일련번호 ...)에서 기기번호(21 뒤 값)만 꺼내기
+  function extractCodentify(raw) {
+    const GS = '\u001d';
+    const hri = String(raw || '').match(/\(21\)\s*([A-Za-z0-9]+)/);
+    if (hri) return hri[1];
+    // 영문·숫자가 아닌 문자(□, 구분기호 등)는 모두 구분기호로 통일
+    let s = String(raw || '').replace(/^\]d2/, '').replace(/[^A-Za-z0-9]+/g, GS);
+    s = s.replace(/^\u001d+/, '').replace(/\u001d+$/, '');
+    const FIXED = { '00': 18, '01': 14, '02': 14, '11': 6, '12': 6, '13': 6, '15': 6, '16': 6, '17': 6 };
+    let i = 0, guard = 0;
+    while (i < s.length && guard++ < 10) {
+      const ai = s.substr(i, 2);
+      if (ai === '21') {
+        let end = s.indexOf(GS, i + 2);
+        if (end < 0) end = s.length;
+        return s.substring(i + 2, end).replace(/[^A-Za-z0-9]/g, '');
+      }
+      if (FIXED[ai]) { i += 2 + FIXED[ai]; if (s[i] === GS) i++; continue; }
+      if (/^\d\d$/.test(ai)) {          // 길이가 정해지지 않은 다른 항목 → 구분기호까지 건너뛰기
+        const end = s.indexOf(GS, i + 2);
+        if (end < 0) break;
+        i = end + 1; continue;
+      }
+      break;
+    }
+    return s.replace(/[\u001d]/g, '').trim();  // GS1 형식이 아니면 읽은 값 그대로
+  }
+
+  function onScanned(text) {
+    if (!scanning) return;
+    $('codentify').value = extractCodentify(text);
+    if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} }
+    closeScan();
+    toast('인식 완료: 라벨과 같은지 확인해 주세요');
+  }
+
+  // ===== zxing-cpp 인식 엔진 (아이폰 등 휴대폰 자체 인식 기능이 없는 경우) =====
+  const ZX_URL = 'https://cdn.jsdelivr.net/npm/zxing-wasm@1/dist/iife/reader/index.js';
+  const ZX_OPTS = { formats: ['DataMatrix', 'QRCode'], tryHarder: true, maxNumberOfSymbols: 1 };
+  let zxPromise = null;
+  function getZxDecoder() {
+    if (!zxPromise) {
+      zxPromise = new Promise(resolve => {
+        const done = async () => {
+          try {
+            const Z = window.ZXingWASM;
+            const fn = Z && (Z.readBarcodes || Z.readBarcodesFromImageData);
+            if (!fn) return resolve(null);
+            await fn(new ImageData(16, 16), ZX_OPTS);   // 엔진 미리 준비
+            resolve(async (canvas, ctx) => {
+              const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const r = await fn(img, ZX_OPTS);
+              const hit = r && r.find(x => x.text && x.isValid !== false);
+              return hit ? hit.text : null;
+            });
+          } catch (e) { resolve(null); }
+        };
+        if (window.ZXingWASM) return done();
+        const sc = document.createElement('script');
+        sc.src = ZX_URL;
+        sc.onload = done;
+        sc.onerror = () => resolve(null);
+        document.head.appendChild(sc);
+        setTimeout(() => resolve(null), 15000);
+      });
+    }
+    return zxPromise;
+  }
+  if (!('BarcodeDetector' in window)) getZxDecoder();  // 아이폰은 페이지 열 때 미리 준비
+
+  async function getDecoder() {
+    const det = await getNativeDetector();
+    if (det) return async canvas => {
+      const codes = await det.detect(canvas);
+      return codes && codes.length ? codes[0].rawValue : null;
+    };
+    return await getZxDecoder();
+  }
+
+  async function openScan() {
+    $('scanModal').classList.remove('hidden');
+    $('scanMsg').textContent = '카메라를 켜는 중...';
+    scanning = true;
+    const decode = await getDecoder();
+
+    // 1) 휴대폰 자체 인식(안드로이드) 또는 zxing-cpp 엔진(아이폰)
+    if (decode) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false
+        });
+        const v = $('scanVideo');
+        v.classList.remove('hidden'); $('reader').classList.add('hidden');
+        $('scanFrame').classList.remove('hidden');
+        v.srcObject = stream;
+        await v.play();
+        await tuneCamera(stream);
+        $('scanMsg').textContent = '네모난 코드를 틀 안에 맞춰주세요 (10~15cm 거리)';
+
+        // 화면 가운데(틀 부분)만 잘라서 쉬지 않고 분석
+        const crop = document.createElement('canvas');
+        const cctx = crop.getContext('2d', { willReadFrequently: true });
+        const tick = async () => {
+          if (!scanning) return;
+          const vw = v.videoWidth, vh = v.videoHeight;
+          if (vw && vh) {
+            const side = Math.floor(Math.min(vw, vh) * 0.7);
+            const out = Math.min(side, 720);
+            crop.width = out; crop.height = out;
+            cctx.drawImage(v, (vw - side) / 2, (vh - side) / 2, side, side, 0, 0, out, out);
+            try {
+              const text = await decode(crop, cctx);
+              if (text) { onScanned(text); return; }
+            } catch (e) {}
+          }
+          loopTimer = setTimeout(tick, 20);
+        };
+        tick();
+        return;
+      } catch (e) {
+        stopStream();
+        cameraFailed();
+        return;
+      }
+    }
+
+    // 2) 기본 인식 기능이 없는 휴대폰(아이폰 등) → 라이브러리로 실시간 인식
+    try {
+      await loadScanLib();
+      $('scanVideo').classList.add('hidden');
+      $('scanFrame').classList.add('hidden'); // 라이브러리가 자체 틀을 그림
+      $('reader').classList.remove('hidden');
+      h5 = new Html5Qrcode('reader', {
+        formatsToSupport: h5Formats(), verbose: false,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+      });
+      await h5.start(
+        { facingMode: 'environment' },
+        {
+          fps: 20,
+          disableFlip: true,
+          qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.6); return { width: s, height: s }; },
+          videoConstraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        },
+        text => onScanned(text),
+        () => {}
+      );
+      try {
+        const v2 = document.querySelector('#reader video');
+        if (v2 && v2.srcObject) await tuneCamera(v2.srcObject);
+      } catch (e) {}
+      $('scanMsg').textContent = '네모난 코드를 틀 안에 맞춰주세요 (10~15cm 거리)';
+    } catch (e) {
+      await stopH5();
+      cameraFailed();
+    }
+  }
+
+  // 지원되는 휴대폰은 연속 자동초점 + 2배 확대 (작은 코드를 멀리서도 선명하게)
+  async function tuneCamera(s) {
+    try {
+      const track = s.getVideoTracks()[0];
+      if (!track || !track.getCapabilities) return;
+      const caps = track.getCapabilities();
+      const adv = {};
+      if (caps.focusMode && caps.focusMode.includes('continuous')) adv.focusMode = 'continuous';
+      if (caps.zoom) adv.zoom = Math.min(2, caps.zoom.max);
+      if (Object.keys(adv).length) await track.applyConstraints({ advanced: [adv] });
+    } catch (e) {}
+  }
+
+  function cameraFailed() {
+    $('scanMsg').textContent = '카메라 화면을 바로 열 수 없습니다. 아래 버튼으로 사진을 찍어 인식해 주세요. (카메라 권한을 허용했는지도 확인해 주세요)';
+  }
+
+  function stopStream() {
+    clearTimeout(loopTimer);
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    $('scanVideo').srcObject = null;
+  }
+  async function stopH5() {
+    if (h5) {
+      try { if (h5.isScanning) await h5.stop(); } catch (e) {}
+      try { h5.clear(); } catch (e) {}
+      h5 = null;
+    }
+  }
+  async function closeScan() {
+    scanning = false;
+    stopStream();
+    await stopH5();
+    $('scanModal').classList.add('hidden');
+  }
+
+  $('codentify').addEventListener('change', e => {
+    const v = e.target.value;
+    if (/^\W*01\d{14}21/.test(v) || /\(21\)/.test(v)) e.target.value = extractCodentify(v);
+  });
+
+  $('camBtn').addEventListener('click', openScan);
+  $('scanClose').addEventListener('click', closeScan);
+
+  // ===== 사진으로 인식 (실시간이 안 될 때) =====
+  $('photoBtn').addEventListener('click', () => $('fileInput').click());
+  $('fileInput').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    $('scanMsg').textContent = '사진에서 코드를 찾는 중...';
+    const text = await decodePhoto(file);
+    if (text) {
+      scanning = true;
+      onScanned(text);
+    } else {
+      $('scanMsg').textContent = '인식하지 못했습니다. 코드가 화면에 크게 나오도록 가까이서, 흔들리지 않게 다시 찍거나 직접 입력해 주세요.';
+    }
+  });
+
+  // 큰 사진을 줄인 이미지 여러 개로 시도 (작은 코드 인식률 향상)
+  async function decodePhoto(file) {
+    let bmp;
+    try { bmp = await createImageBitmap(file); } catch (e) { return null; }
+    const sizes = [1600, 1000, 2400];
+    const decode = await getDecoder();
+    for (const max of sizes) {
+      const canvas = scaledCanvas(bmp, max);
+      if (decode) {
+        try {
+          const t = await decode(canvas, canvas.getContext('2d', { willReadFrequently: true }));
+          if (t) return t;
+        } catch (e) {}
+      }
+      try {
+        await loadScanLib();
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+        const f = new File([blob], 'scan.jpg', { type: 'image/jpeg' });
+        const tmp = new Html5Qrcode('reader', { formatsToSupport: h5Formats(), verbose: false });
+        const t = await tmp.scanFile(f, false);
+        try { tmp.clear(); } catch (e) {}
+        if (t) return t;
+      } catch (e) {}
+    }
+    return null;
+  }
+  function scaledCanvas(bmp, max) {
+    const r = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * r);
+    c.height = Math.round(bmp.height * r);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return c;
+  }
+
+  // ===== 저장 =====
+  $('save').addEventListener('click', () => {
+    document.querySelectorAll('.err').forEach(el => el.classList.remove('err'));
+    const data = {};
+    ['zone','name','phone','deviceType','color','coupon','codentify','payType','amount','approval','depositor']
+      .forEach(id => data[id] = $(id).value.trim());
+
+    const need = REQUIRED.slice();
+    if (data.payType === '카드') need.push('approval');
+    const missing = need.filter(k => !data[k]);
+    if (missing.length) {
+      missing.forEach(k => document.querySelector('[data-f="' + k + '"]').classList.add('err'));
+      document.querySelector('[data-f="' + missing[0] + '"]').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      toast('필수 항목을 입력해 주세요');
+      return;
+    }
+
+    $('save').disabled = true;
+    $('save').textContent = '저장 중';
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(data)
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (!res || !res.ok) throw new Error((res && res.error) || '다시 시도해 주세요');
+        savedCount++;
+        $('cnt').textContent = '이번 접속 저장 ' + savedCount + '건';
+        try { localStorage.setItem('gse_zone', data.zone); } catch (e) {}
+        resetForm();
+        toast('저장되었습니다');
+      })
+      .catch(err => {
+        toast('저장 실패: ' + (err && err.message && err.message !== 'Failed to fetch' ? err.message : '인터넷 연결을 확인하고 다시 시도해 주세요'));
+      })
+      .finally(() => {
+        $('save').disabled = false;
+        $('save').textContent = '저장';
+      });
+  });
+
+  // 저장 후 초기화 (Zone Code는 유지)
+  function resetForm() {
+    ['name','phone','deviceType','color','coupon','codentify','payType','amount','approval','depositor']
+      .forEach(id => $(id).value = '');
+    $('approvalWrap').classList.add('hidden');
+    $('depositorWrap').classList.add('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+})();
+</script>
+</body>
+</html>
