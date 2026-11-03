@@ -228,16 +228,29 @@
         });
         const v = $('scanVideo');
         v.classList.remove('hidden'); $('reader').classList.add('hidden');
+        $('scanFrame').classList.remove('hidden');
         v.srcObject = stream;
         await v.play();
-        $('scanMsg').textContent = '네모난 코드를 틀 안에 맞춰주세요';
+        await tuneCamera(stream);
+        $('scanMsg').textContent = '네모난 코드를 틀 안에 맞춰주세요 (10~15cm 거리)';
+
+        // 화면 가운데(틀 부분)만 잘라서 쉬지 않고 분석 → 인식 속도 향상
+        const crop = document.createElement('canvas');
+        const cctx = crop.getContext('2d', { willReadFrequently: true });
         const tick = async () => {
           if (!scanning) return;
-          try {
-            const codes = await detector.detect(v);
-            if (codes && codes.length) { onScanned(codes[0].rawValue); return; }
-          } catch (e) {}
-          loopTimer = setTimeout(tick, 150);
+          const vw = v.videoWidth, vh = v.videoHeight;
+          if (vw && vh) {
+            const side = Math.floor(Math.min(vw, vh) * 0.7);
+            const out = Math.min(side, 720);
+            crop.width = out; crop.height = out;
+            cctx.drawImage(v, (vw - side) / 2, (vh - side) / 2, side, side, 0, 0, out, out);
+            try {
+              const codes = await detector.detect(crop);
+              if (codes && codes.length) { onScanned(codes[0].rawValue); return; }
+            } catch (e) {}
+          }
+          loopTimer = setTimeout(tick, 30);
         };
         tick();
         return;
@@ -252,19 +265,45 @@
     try {
       await loadScanLib();
       $('scanVideo').classList.add('hidden');
+      $('scanFrame').classList.add('hidden'); // 라이브러리가 자체 틀을 그림
       $('reader').classList.remove('hidden');
-      h5 = new Html5Qrcode('reader', { formatsToSupport: h5Formats(), verbose: false });
+      h5 = new Html5Qrcode('reader', {
+        formatsToSupport: h5Formats(), verbose: false,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+      });
       await h5.start(
         { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 220, height: 220 }, videoConstraints: { facingMode: 'environment', width: { ideal: 1920 } } },
+        {
+          fps: 20,
+          disableFlip: true,
+          qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.6); return { width: s, height: s }; },
+          videoConstraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        },
         text => onScanned(text),
         () => {}
       );
-      $('scanMsg').textContent = '네모난 코드를 틀 안에 맞춰주세요';
+      try {
+        const v2 = document.querySelector('#reader video');
+        if (v2 && v2.srcObject) await tuneCamera(v2.srcObject);
+      } catch (e) {}
+      $('scanMsg').textContent = '네모난 코드를 틀 안에 맞춰주세요 (10~15cm 거리)';
     } catch (e) {
       await stopH5();
       cameraFailed();
     }
+  }
+
+  // 지원되는 휴대폰은 연속 자동초점 + 2배 확대 (작은 코드를 멀리서도 선명하게)
+  async function tuneCamera(s) {
+    try {
+      const track = s.getVideoTracks()[0];
+      if (!track || !track.getCapabilities) return;
+      const caps = track.getCapabilities();
+      const adv = {};
+      if (caps.focusMode && caps.focusMode.includes('continuous')) adv.focusMode = 'continuous';
+      if (caps.zoom) adv.zoom = Math.min(2, caps.zoom.max);
+      if (Object.keys(adv).length) await track.applyConstraints({ advanced: [adv] });
+    } catch (e) {}
   }
 
   function cameraFailed() {
