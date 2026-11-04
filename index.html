@@ -78,7 +78,7 @@
 </style>
 </head>
 <body>
-<header>[안양]GSE 입력 <small>v13</small></header>
+<header>[안양]GSE 입력 <small>v14</small></header>
 
 <main>
   <div class="card" data-f="zone">
@@ -187,20 +187,21 @@
     ['2001', 'SR2001-SE', 3089851], ['2002', 'SR2002-SE', 3089853], ['2003', 'SR2003-SE', 3089855],
     ['2004', 'SR2004-SE', 3089856], ['2005', 'SR2005-SE', 3089857], ['2006', 'SR2006-SE', 3089858],
     ['2007', 'SR2007-SE', 3089859], ['2008', 'SR2008-SE', 3089860], ['2009', 'SR2009-SE', 3089861],
-    ['2010', 'SR2010-SE', 3089862], ['2011', 'SR2011-SE', 3089863], ['2012', 'SR2012-SE', 3089864]
+    ['2010', 'SR2010-SE', 3089862], ['2011', 'SR2011-SE', 3089863], ['2012', 'SR2012-SE', 3089864],
+    ['솔트베이', '20지점세일즈이벤트(SE)', 3049109]
   ];
 
-  // 쿠폰: [쿠폰명(화면), 할인액, 적용프로모션] → 실판매 = 정가 - 할인액
+  // 쿠폰: [쿠폰명(화면), 할인액, 적용프로모션, ProgramSubtype] → 실판매 = 정가 - 할인액
   const ILUMA_COUPONS = [
     ['(정상소매)', 0, ''],
     ['LAS_Assisted Welcome_30000', 30000, 'Assisted Welcome'],
     ['LAS_Lead_Journey_ALL_35000', 35000, 'IQOS Friends'],
     ['LAS_Legend Badge_ALL', 0, ''],
-    ['LAS_Seasonal_Assisted Welcome_30000', 30000, 'AQ Boost'],
+    ['LAS_Seasonal_Assisted Welcome_30000', 30000, 'AQ Boost', 'Assisted Welcome(Seasonal)'],
     ['LAU_Legend Badge_ALL', 0, ''],
     ['LAU_[Abandoner]_ALL_20000', 20000, 'Abandoner Program'],
-    ['LAU_[Club Redemption]_4.1_ALL_10000', 10000, 'Club redemption'],
-    ['LAU_[Club Redemption]_4.1_ALL_30000', 30000, 'Club redemption'],
+    ['LAU_[Club Redemption]_4.1_ALL_10000', 10000, 'Club redemption', 'Point Coupon 10K'],
+    ['LAU_[Club Redemption]_4.1_ALL_30000', 30000, 'Club redemption', 'Point Coupon 20K'],
     ['LAU_[EOL]_4.1_ALL_10000', 10000, ''],
     ['LAU_[일루마 Care]_4.1_ALL_20000', 20000, 'ILUMA Care']
   ];
@@ -210,18 +211,23 @@
     ['LAU_VEEV ALLDAY_19000', 19000, 'Veev All Day']
   ];
 
-  // 기기타입: 정가, 컬러 [이름, 제품코드], 쿠폰 목록 (버튼 순서대로)
+  // 기기타입: 정가, 컬러 [이름, 제품코드, 브랜드명], 쿠폰 목록 (버튼 순서대로)
   const DEVICES = [
     ['비브', { price: 29000, coupons: VEEV_COUPONS, colors: [
-      ['앰버', 'VVGLAMB'], ['그린', 'VVMAGRE'], ['블루', 'VVOCBLU'], ['마젠타', 'VVORMAG'], ['블랙', 'VVSLBLA']] }],
+      ['앰버', 'VVGLAMB', '비브 인프라임 글로잉 앰버'], ['그린', 'VVMAGRE', '비브 인프라임 말라카이트 그린'],
+      ['블루', 'VVOCBLU', '비브 인프라임 오셔닉 블루'], ['마젠타', 'VVORMAG', '비브 인프라임 오키드 마젠타'],
+      ['블랙', 'VVSLBLA', '비브 인프라임 슬릭 블랙']] }],
     ['i원', { price: 59000, coupons: ILUMA_COUPONS, colors: [
-      ['브리즈 블루', 'IIOMKBB'], ['디지털 바이올렛', 'IIOMKDV'], ['일렉트릭 퍼플', 'IIOMKEP'],
-      ['리프 그린', 'IIOMKLG'], ['미드나잇 블랙', 'IIOMKMB'], ['비비드 테라코타', 'IIOMKVT']] }],
+      ['브리즈 블루', 'IIOMKBB', '일루마 i 원 키트 (브리즈 블루)'], ['디지털 바이올렛', 'IIOMKDV', '일루마 i 원 키트 (디지털 바이올렛)'],
+      ['일렉트릭 퍼플', 'IIOMKEP', '일루마 i 원 키트 (일렉트릭 퍼플)'], ['리프 그린', 'IIOMKLG', '일루마 i 원 키트 (리프 그린)'],
+      ['미드나잇 블랙', 'IIOMKMB', '일루마 i 원 키트 (미드나잇 블랙)'], ['비비드 테라코타', 'IIOMKVT', '일루마 i 원 키트 (비비드 테라코타)']] }],
     ['i미드', { price: 89000, coupons: ILUMA_COUPONS, colors: [
-      ['브리즈 블루', 'IIMKMBB'], ['디지털 바이올렛', 'IIMKMDG'], ['일렉트릭 퍼플', 'IIMKMEP'],
-      ['리프 그린', 'IIMKMLG'], ['미드나잇 블랙', 'IIMKMMB'], ['비비드 테라코타', 'IIMKMVT']] }],
+      ['브리즈 블루', 'IIMKMBB', '일루마 i 키트 (브리즈 블루)'], ['디지털 바이올렛', 'IIMKMDG', '일루마 i 키트 (디지털 바이올렛)'],
+      ['일렉트릭 퍼플', 'IIMKMEP', '일루마 i 키트 (일렉트릭 퍼플)'], ['리프 그린', 'IIMKMLG', '일루마 i 키트 (리프 그린)'],
+      ['미드나잇 블랙', 'IIMKMMB', '일루마 i 키트 (미드나잇 블랙)'], ['비비드 테라코타', 'IIMKMVT', '일루마 i 키트 (비비드 테라코타)']] }],
     ['i프라임', { price: 129000, coupons: ILUMA_COUPONS, colors: [
-      ['브리즈 블루', 'IIMKPBB'], ['일렉트릭 퍼플', 'IIMKPEP'], ['가넷 레드', 'IIMKPGR'], ['미드나잇 블랙', 'IIMKPMB']] }]
+      ['브리즈 블루', 'IIMKPBB', '일루마 i 프라임 키트 (브리즈블루)'], ['일렉트릭 퍼플', 'IIMKPEP', '일루마 i 프라임 키트 (일렉트릭 퍼플)'],
+      ['가넷 레드', 'IIMKPGR', '일루마 i 프라임 키트 (가넷 레드)'], ['미드나잇 블랙', 'IIMKPMB', '일루마 i 프라임 키트 (미드나잇 블랙)']] }]
   ];
   const DEVICE_MAP = Object.fromEntries(DEVICES);
   const PAY_TYPES = ['카드', '현금'];
@@ -642,6 +648,7 @@
         store: zoneRow ? zoneRow[2] : '',
         zone: zoneRow ? zoneRow[1] : '',
         brand: colorRow ? colorRow[1] : '',
+        bname: colorRow ? colorRow[2] : '',
         pay: pay,
         coupon: state.coupon ? state.coupon[0].replace(/\s+/g, '_') : '',
         qty: 1,
@@ -653,6 +660,7 @@
         appr: pay === '카드' ? approval : '',
         cod: $('codentify').value.trim(),
         promo: state.coupon ? state.coupon[2] : '',
+        sub: state.coupon ? (state.coupon[3] || '') : '',
         name: $('name').value.trim(),
         phone: $('phone').value.trim(),
         note: notes.join(' / '),
