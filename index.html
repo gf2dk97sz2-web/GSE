@@ -57,6 +57,7 @@
 
   footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #ddd; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
   footer span { flex: 1; font-size: 13px; color: #555; }
+  #histBtn { height: 48px; padding: 0 14px; border: 1px solid #c9c2d8; border-radius: 10px; background: #fff; color: #673ab7; font-size: 14px; font-family: inherit; }
   #save { height: 48px; padding: 0 28px; border: none; border-radius: 10px; background: #673ab7; color: #fff; font-size: 16px; font-weight: bold; }
   #save:disabled { background: #aaa; }
   #toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: rgba(0,0,0,.85); color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 92vw; text-align: center; z-index: 30; }
@@ -78,7 +79,7 @@
 </style>
 </head>
 <body>
-<header>[안양]GSE 입력 <small>v14</small></header>
+<header>[안양]GSE 입력 <small>v15</small></header>
 
 <main>
   <div class="card" data-f="zone">
@@ -169,7 +170,8 @@
 </div>
 
 <footer>
-  <span id="cnt">이번 접속 저장 0건</span>
+  <span id="cnt">오늘 저장 -건</span>
+  <button id="histBtn" type="button">저장내역</button>
   <button id="save" type="button">저장</button>
 </footer>
 <div id="toast"></div>
@@ -234,7 +236,6 @@
   const REQUIRED = ['zone','name','phone','deviceType','color','coupon','payType','amount'];
 
   const $ = id => document.getElementById(id);
-  let savedCount = 0;
   const state = { deviceType: '', payType: '', coupon: null };   // coupon: [이름, 할인액, 프로모션]
 
   // ===== 화면 구성 =====
@@ -690,25 +691,49 @@
     $('save').dataset.mode = mode || '';
   }
 
-  function onSaved(view) {
+  // 오늘 저장 건수 (저장할 때 서버가 알려준 값, Zone별)
+  function today() { const d = new Date(Date.now() + 9 * 3600 * 1000); return d.toISOString().slice(0, 10); }
+  function showCount() {
+    const z = ZONES.find(x => x[0] === $('zone').value);
+    let c = null;
+    try { const s = JSON.parse(localStorage.getItem('gse_cnt') || 'null'); if (s && z && s.date === today() && s.zone === z[1]) c = s.count; } catch (e) {}
+    $('cnt').innerHTML = z ? '오늘 ' + z[0] + ' 저장 <b>' + (c === null ? '-' : c) + '</b>건' : 'Zone을 선택하세요';
+  }
+  $('zone').addEventListener('change', showCount);
+  showCount();
+
+  function onSaved(view, count, zoneSave) {
     pending = null;
-    savedCount++;
-    $('cnt').textContent = '이번 접속 저장 ' + savedCount + '건';
+    if (typeof count === 'number' && zoneSave) {
+      try { localStorage.setItem('gse_cnt', JSON.stringify({ date: today(), zone: zoneSave, count: count })); } catch (e) {}
+    }
     try { localStorage.setItem('gse_zone', view.zone); } catch (e) {}
     resetForm();
+    showCount();
     setSaveBtn('저장');
     toast('저장되었습니다');
   }
 
-  // 새 창이 보내는 "저장 완료" 신호
-  window.addEventListener('message', ev => {
+  function fromGoogle(origin) {
     let host = '';
-    try { host = new URL(ev.origin).hostname; } catch (e) { return; }
-    if (!/(^|\.)googleusercontent\.com$|(^|\.)google\.com$/.test(host)) return;
+    try { host = new URL(origin).hostname; } catch (e) { return false; }
+    return /(^|\.)googleusercontent\.com$|(^|\.)google\.com$/.test(host);
+  }
+
+  // 저장 창과 주고받기: ① 창이 "준비됨" → ② 입력값을 창에 직접 전달 (주소에 고객정보가 남지 않음) → ③ "저장 완료"
+  window.addEventListener('message', ev => {
+    if (!fromGoogle(ev.origin)) return;
     const d = ev.data;
-    if (!d || !d.gse || !pending || d.rid !== pending.rid) return;
-    if (d.ok) onSaved(pending.view);
-    else { setSaveBtn('저장'); pending = null; toast('저장 실패: ' + (d.error || '다시 시도해 주세요')); }
+    if (!d || !pending || d.rid !== pending.rid) return;
+    if (d.gse === 'ready') {
+      pending.connected = true;
+      try { ev.source.postMessage({ gse: 'payload', rid: pending.rid, payload: pending.row }, ev.origin); } catch (e) {}
+      return;
+    }
+    if (d.gse === true) {
+      if (d.ok) onSaved(pending.view, d.count, d.zone);
+      else { setSaveBtn('저장'); pending = null; toast('저장 실패: ' + (d.error || '다시 시도해 주세요')); }
+    }
   });
 
   $('save').addEventListener('click', () => {
@@ -718,15 +743,34 @@
     const data = collect();
     if (!validate(data.view)) return;
     const key = JSON.stringify(data.row);
-    const rid = (pending && pending.key === key) ? pending.rid : newRid();   // 같은 내용이면 같은 번호 (중복 방지)
-    pending = { key, rid, view: data.view };
+    const same = pending && pending.key === key;
+    const rid = same ? pending.rid : newRid();   // 같은 내용이면 같은 번호 (중복 저장 방지)
+    const useBackup = same && pending.backup;     // 주고받기가 안 됐던 경우 → 예비 방식
+    pending = { key, rid, view: data.view, row: data.row, connected: false, backup: false };
 
     const url = API_URL + '?action=save&mode=page&rid=' + rid +
-      '&payload=' + encodeURIComponent(JSON.stringify(data.row)) + '&t=' + Date.now();
+      (useBackup ? '&payload=' + encodeURIComponent(JSON.stringify(data.row)) : '') + '&t=' + Date.now();
     const w = window.open(url, '_blank');
     if (!w) { toast('새 창이 차단됐습니다. 브라우저 설정에서 팝업을 허용해 주세요'); return; }
     setSaveBtn('다음 고객 입력', 'next');
     toast('새 창에 "저장되었습니다"가 보이면 돌아와 주세요');
+
+    if (!useBackup) {
+      const mine = pending;
+      setTimeout(() => {
+        if (pending !== mine || mine.connected) return;
+        mine.backup = true;
+        setSaveBtn('다시 저장');
+        toast('저장 창과 연결되지 않았어요. 저장 창을 닫고 "다시 저장"을 눌러주세요');
+      }, 15000);
+    }
+  });
+
+  // 저장내역 (구글 쪽 화면이 새 창으로 열림)
+  $('histBtn').addEventListener('click', () => {
+    const z = ZONES.find(x => x[0] === $('zone').value);
+    const w = window.open(API_URL + '?view=history' + (z ? '&zone=' + encodeURIComponent(z[1]) : ''), '_blank');
+    if (!w) toast('새 창이 차단됐습니다. 브라우저 설정에서 팝업을 허용해 주세요');
   });
 
   // 저장 후 초기화 (Zone Code는 유지)
